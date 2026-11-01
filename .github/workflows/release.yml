@@ -1,0 +1,118 @@
+name: release
+
+# Builds the bridge against the lowest noi_engine version it supports (bridge.json
+# noi_engine.min, downloaded from noi_engine's releases) and publishes one zip per platform.
+
+on:
+  push:
+    tags: [ "v*" ]
+  workflow_dispatch:
+    inputs:
+      tag_name:
+        description: 'Release tag to publish (ex: v0.0.1), must match bridge.json "version"'
+        required: true
+
+permissions:
+  contents: write
+
+jobs:
+  build:
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - os: ubuntu-latest
+            triplet: x64-linux
+            artifact_os: linux
+            artifact_arch: x64
+          - os: macos-latest
+            triplet: arm64-osx
+            artifact_os: macos
+            artifact_arch: arm64
+
+    runs-on: ${{ matrix.os }}
+
+    env:
+      VCPKG_DEFAULT_TRIPLET: ${{ matrix.triplet }}
+      VCPKG_DEFAULT_HOST_TRIPLET: ${{ matrix.triplet }}
+      VCPKG_BINARY_SOURCES: 'clear'
+
+    steps:
+      - uses: actions/checkout@v6
+
+      - name: Read bridge.json and check the tag
+        id: manifest
+        shell: bash
+        run: |
+          set -euo pipefail
+          VERSION=$(jq -r .version bridge.json)
+          MIN_ENGINE=$(jq -r .noi_engine.min bridge.json)
+          TAG="${{ github.event_name == 'push' && github.ref_name || inputs.tag_name }}"
+          if [ "$TAG" != "v$VERSION" ]; then
+            echo "Tag $TAG does not match bridge.json version $VERSION" >&2
+            exit 1
+          fi
+          echo "min_engine=$MIN_ENGINE" >> "$GITHUB_OUTPUT"
+
+      - name: Install latest CMake and Ninja
+        uses: lukka/get-cmake@latest
+
+      - name: Fix Linux-specific issues
+        if: runner.os == 'Linux'
+        run: sudo apt-get update && sudo apt install ninja-build build-essential
+
+      - name: Download noi_engine ${{ steps.manifest.outputs.min_engine }}
+        shell: bash
+        run: |
+          set -euo pipefail
+          VERSION="${{ steps.manifest.outputs.min_engine }}"
+          ASSET="noi_engine-${{ matrix.artifact_os }}-${{ matrix.artifact_arch }}-release.zip"
+          curl -fsSL -o engine.zip "https://github.com/noi-engine/noi_engine/releases/download/v${VERSION}/${ASSET}"
+          mkdir -p deps && unzip -q engine.zip -d deps
+
+      - name: Setup vcpkg
+        uses: lukka/run-vcpkg@v11
+        with:
+          vcpkgGitCommitId: 'fd3dde77905b1b1890df3c8daa496d9b2fe44f7f'
+
+      - name: Configure and build
+        uses: lukka/run-cmake@v10
+        with:
+          configurePreset: release
+          configurePresetAdditionalArgs: "['-DNOI_ENGINE_ROOT=${{ github.workspace }}/deps/noi_engine']"
+          buildPreset: release
+
+      - name: Package
+        shell: bash
+        run: |
+          set -euo pipefail
+          cmake --install build/release --prefix dist/noi_engine_editor_bridge
+          ZIP_NAME="noi_engine_editor_bridge-${{ matrix.artifact_os }}-${{ matrix.artifact_arch }}.zip"
+          (cd dist && zip -r "../${ZIP_NAME}" noi_engine_editor_bridge)
+          mkdir -p final_dist && mv "${ZIP_NAME}" final_dist/
+
+      - name: Upload build artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: noi_engine_editor_bridge-${{ matrix.artifact_os }}-${{ matrix.artifact_arch }}
+          path: final_dist/*.zip
+          retention-days: 1
+
+  release:
+    needs: build
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Download all build artifacts
+        uses: actions/download-artifact@v4
+        with:
+          path: dist
+          merge-multiple: true
+
+      - name: Create GitHub release
+        uses: softprops/action-gh-release@v2
+        with:
+          tag_name: ${{ github.event_name == 'push' && github.ref_name || inputs.tag_name }}
+          name: ${{ github.event_name == 'push' && github.ref_name || inputs.tag_name }}
+          generate_release_notes: true
+          files: dist/*.zip
