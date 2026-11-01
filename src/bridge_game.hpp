@@ -2,6 +2,7 @@
 
 #include "noi_engine_editor_bridge/bridge_api.h"
 #include "components/component_handler.hpp"
+#include "editor_data.hpp"
 
 #include <cstdint>
 #include <string>
@@ -88,14 +89,18 @@ namespace noi_engine_editor_bridge_detail
         //TODO: handle 3d
         [[nodiscard]] auto get_camera_2d_component() -> noi_engine::camera_2d&;
 
+        [[nodiscard]] auto component_context_for(noi_engine::entity e) -> component_context;
         [[nodiscard]] auto component_context_for(uint32_t entity_id, uint32_t entity_generation) -> component_context;
         [[nodiscard]] auto is_grid_entity(noi_engine::entity e) const -> bool;
 
         auto add_camera_gizmo() -> void;
+        auto refresh_camera_gizmo() -> void;
         auto create_grid() -> void;
+        auto load_folders(const std::string& scene_path) -> void;
 
-        int m_game_width{};
-        int m_game_height{};
+        std::string m_resources_path;
+        editor_data m_editor{};
+        noi_engine::resource_handle<noi_engine::material> m_gizmo_material{};
         noi_engine::timer m_timer{};
         void* m_scripts_library_handle{nullptr};
         std::unordered_set<int> m_held_keys{};

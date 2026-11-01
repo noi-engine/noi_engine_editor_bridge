@@ -37,6 +37,7 @@ add_library(noi_engine_editor_bridge SHARED
         src/bridge_game_resources.cpp
         src/bridge_game_persistence.cpp
         src/editor_shaders.hpp
+        src/editor_data.hpp
 
         src/properties/property_emitter.hpp
         src/properties/property_value.hpp
@@ -48,6 +49,7 @@ add_library(noi_engine_editor_bridge SHARED
         src/components/box_collider.cpp
         src/components/camera_2d.cpp
         src/components/camera_3d.cpp
+        src/components/folder.cpp
         src/components/gravity.cpp
         src/components/mesh_renderer.cpp
         src/components/mesh_renderer_properties.hpp

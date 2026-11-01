@@ -33,6 +33,11 @@ namespace noi_engine_editor_bridge_detail
         this->set_scene(path);
         this->get_current_scene()->add_system<noi_engine::physics_system>();
 
+        // Remember the camera as authored, before on_resize() stretches it to the viewport.
+        m_editor.camera_entity = this->get_current_scene()->get_camera_entity();
+        m_editor.authored_camera = this->get_camera_2d_component();
+
+        load_folders(path);
         add_camera_gizmo();
         create_grid();
     }
@@ -41,36 +46,41 @@ namespace noi_engine_editor_bridge_detail
     {
         auto& resources_ref = this->resources();
 
-        const float world_width = static_cast<float>(this->m_game_width) / PIXELS_PER_UNIT;
-        const float world_height = static_cast<float>(this->m_game_height) / PIXELS_PER_UNIT;
-
-        const float border_thickness_x = (GIZMO_BORDER_PIXELS / PIXELS_PER_UNIT) / world_width;
-        const float border_thickness_y = (GIZMO_BORDER_PIXELS / PIXELS_PER_UNIT) / world_height;
-
         const auto shader_handle = resources_ref.load_instance(
             "camera_gizmo_shader",
             std::make_unique<noi_engine::shader>(editor_shaders::QUAD_VERTEX, editor_shaders::CAMERA_GIZMO_FRAGMENT));
 
         auto material = std::make_unique<noi_engine::material>();
         material->set_color("u_color", glm::vec4{1, 0, 0, 1});
-        material->set_parameter("u_border_thickness_x", border_thickness_x);
-        material->set_parameter("u_border_thickness_y", border_thickness_y);
         material->set_shader(shader_handle);
-        const auto material_handle = resources_ref.load_instance(std::move(material));
-        const auto mesh_handle = resources_ref.get_handle<noi_engine::mesh>("meshes:quad_2d");
+        m_gizmo_material = resources_ref.load_instance(std::move(material));
 
-        const auto camera_entity = this->get_current_scene()->get_camera_entity();
+        this->get_world().add<noi_engine::mesh_renderer>(m_editor.camera_entity, {
+                                                             .m_mesh = resources_ref.get_handle<noi_engine::mesh>(
+                                                                 "meshes:quad_2d"),
+                                                             .m_material = m_gizmo_material
+                                                         });
+        refresh_camera_gizmo();
+    }
+
+    // Sizes the red border to the area the authored camera shows in the game.
+    auto bridge_game::refresh_camera_gizmo() -> void
+    {
+        const auto& camera = m_editor.authored_camera;
+        const float world_height = camera.orthographic_size * 2.0f / camera.zoom;
+        const float world_width = world_height * camera.aspect_ratio;
+
+        if (auto* material = this->resources().materials.get(m_gizmo_material))
+        {
+            const float border = GIZMO_BORDER_PIXELS / PIXELS_PER_UNIT;
+            material->set_parameter("u_border_thickness_x", border / world_width);
+            material->set_parameter("u_border_thickness_y", border / world_height);
+        }
+
         auto& world = this->get_world();
-
-        world.add<noi_engine::mesh_renderer>(camera_entity, {
-                                                 .m_mesh = mesh_handle,
-                                                 .m_material = material_handle
-                                             });
-
-        auto& transform = world.get<noi_engine::transform>(camera_entity);
-        transform.scale = glm::vec3{world_width, world_height, 1.0};
-
-        world.add<noi_engine::dirty<noi_engine::transform>>(camera_entity, noi_engine::dirty<noi_engine::transform>{});
+        world.get<noi_engine::transform>(m_editor.camera_entity).scale = glm::vec3{world_width, world_height, 1.0f};
+        world.add<noi_engine::dirty<noi_engine::transform>>(m_editor.camera_entity,
+                                                            noi_engine::dirty<noi_engine::transform>{});
     }
 
     // Fixed in world space (its own entity, not attached to the camera) so panning/following

@@ -19,9 +19,11 @@ namespace noi_engine_editor_bridge_detail
         using register_scripts_fn = void (*)(noi_engine::game&);
     }
 
-    bridge_game::bridge_game(const int game_width, const int game_height, const std::string& resources_path) :
+    // The game size the editor passes is no longer used: the red camera border shows the scene
+    // camera's own camera_2d.
+    bridge_game::bridge_game(int /*game_width*/, int /*game_height*/, const std::string& resources_path) :
         game(std::make_unique<noi_engine::source_resource_loader>(std::filesystem::path(resources_path))),
-        m_game_width(game_width), m_game_height(game_height)
+        m_resources_path(resources_path)
     {
     }
 

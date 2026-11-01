@@ -74,19 +74,25 @@ namespace noi_engine_editor_bridge_detail
                 name = world.get<noi_engine::name_component>(e).name;
             }
 
-            const component_context context{world, this->resources(), e};
+            const auto context = component_context_for(e);
             auto components = nlohmann::json::array();
 
             for (const auto* type : SAVE_ORDER)
             {
                 const auto* handler = find_component_handler(type);
-                if (handler && handler->save && handler->has(world, e))
+                if (handler && handler->save && handler->has(context))
                 {
                     handler->save(context, is_camera, components);
                 }
             }
 
-            entities.push_back({{"name", name}, {"components", components}});
+            nlohmann::json entity_json{{"name", name}, {"components", components}};
+            if (const auto it = m_editor.folders.find(editor_data::key(e)); it != m_editor.folders.end() &&
+                !it->second.empty())
+            {
+                entity_json["folder"] = it->second;
+            }
+            entities.push_back(entity_json);
         }
 
         root["entities"] = entities;

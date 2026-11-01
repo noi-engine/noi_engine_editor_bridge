@@ -1,6 +1,7 @@
 #pragma once
 
 #include "noi_engine_editor_bridge/bridge_api.h"
+#include "editor_data.hpp"
 #include "properties/property_emitter.hpp"
 
 #include <string>
@@ -18,6 +19,7 @@ namespace noi_engine_editor_bridge_detail
         noi_engine::world& world;
         noi_engine::resources& resources;
         noi_engine::entity entity;
+        editor_data& editor;
     };
 
     // Everything the editor can do with one component type. Each type lives in its own file
@@ -26,14 +28,14 @@ namespace noi_engine_editor_bridge_detail
     // the component.
     struct component_handler
     {
-        using has_fn = bool (*)(noi_engine::world&, noi_engine::entity);
+        using has_fn = bool (*)(const component_context&);
         using enumerate_fn = void (*)(const component_context&, const property_emitter&);
         using set_property_fn = bool (*)(const component_context&, const std::string& property_name,
                                          const noi_engine_editor_bridge_property_value& value);
         using remove_property_fn = bool (*)(const component_context&, const std::string& property_name);
         using add_fn = bool (*)(const component_context&);
         using remove_fn = bool (*)(const component_context&);
-        using copy_fn = void (*)(noi_engine::world&, noi_engine::entity from, noi_engine::entity to);
+        using copy_fn = void (*)(const component_context& from, noi_engine::entity to);
         using save_fn = void (*)(const component_context&, bool is_camera, nlohmann::json& components);
 
         const char* type{};
@@ -51,9 +53,9 @@ namespace noi_engine_editor_bridge_detail
     namespace component_ops
     {
         template <typename T>
-        auto has(noi_engine::world& world, const noi_engine::entity e) -> bool
+        auto has(const component_context& c) -> bool
         {
-            return world.has<T>(e);
+            return c.world.has<T>(c.entity);
         }
 
         template <typename T>
@@ -79,11 +81,11 @@ namespace noi_engine_editor_bridge_detail
         }
 
         template <typename T>
-        auto copy(noi_engine::world& world, const noi_engine::entity from, const noi_engine::entity to) -> void
+        auto copy(const component_context& from, const noi_engine::entity to) -> void
         {
-            if (world.has<T>(from))
+            if (from.world.has<T>(from.entity))
             {
-                world.add<T>(to, world.get<T>(from));
+                from.world.add<T>(to, from.world.get<T>(from.entity));
             }
         }
     }

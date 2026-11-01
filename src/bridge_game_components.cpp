@@ -6,10 +6,15 @@
 
 namespace noi_engine_editor_bridge_detail
 {
+    auto bridge_game::component_context_for(const noi_engine::entity e) -> component_context
+    {
+        return {this->get_world(), this->resources(), e, m_editor};
+    }
+
     auto bridge_game::component_context_for(const uint32_t entity_id, const uint32_t entity_generation)
         -> component_context
     {
-        return {this->get_world(), this->resources(), noi_engine::entity{entity_id, entity_generation}};
+        return component_context_for(noi_engine::entity{entity_id, entity_generation});
     }
 
     auto bridge_game::enumerate_component_properties(const uint32_t entity_id, const uint32_t entity_generation,
@@ -25,7 +30,7 @@ namespace noi_engine_editor_bridge_detail
         const auto context = component_context_for(entity_id, entity_generation);
         const auto* handler = find_component_handler(component_type);
 
-        if (handler && handler->enumerate && handler->has(context.world, context.entity))
+        if (handler && handler->enumerate && handler->has(context))
         {
             handler->enumerate(context, property_emitter{callback, user_data});
         }
@@ -44,8 +49,18 @@ namespace noi_engine_editor_bridge_detail
         const auto context = component_context_for(entity_id, entity_generation);
         const auto* handler = find_component_handler(component_type);
 
-        return handler && handler->set_property && handler->has(context.world, context.entity) &&
-            handler->set_property(context, property_name, value);
+        if (!handler || !handler->set_property || !handler->has(context) ||
+            !handler->set_property(context, property_name, value))
+        {
+            return false;
+        }
+
+        // The red border shows the scene camera's authored size.
+        if (component_type == "camera_2d" && context.entity == m_editor.camera_entity)
+        {
+            refresh_camera_gizmo();
+        }
+        return true;
     }
 
     auto bridge_game::remove_component_property(const uint32_t entity_id, const uint32_t entity_generation,
@@ -60,7 +75,7 @@ namespace noi_engine_editor_bridge_detail
         const auto context = component_context_for(entity_id, entity_generation);
         const auto* handler = find_component_handler(component_type);
 
-        return handler && handler->remove_property && handler->has(context.world, context.entity) &&
+        return handler && handler->remove_property && handler->has(context) &&
             handler->remove_property(context, property_name);
     }
 

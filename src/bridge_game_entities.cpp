@@ -2,6 +2,12 @@
 #include "components/component_registry.hpp"
 
 #include <algorithm>
+#include <deque>
+#include <filesystem>
+#include <fstream>
+#include <unordered_map>
+
+#include <nlohmann/json.hpp>
 
 #include <noi_engine/core/components/name_component.hpp>
 
@@ -20,6 +26,49 @@ namespace noi_engine_editor_bridge_detail
     auto bridge_game::is_grid_entity(const noi_engine::entity e) const -> bool
     {
         return m_has_grid_entity && e == m_grid_entity;
+    }
+
+    // The engine ignores the entities' "folder" field, so read it straight from the scene file.
+    // Entities are matched by name, in file order (the order the loader created them in).
+    auto bridge_game::load_folders(const std::string& scene_path) -> void
+    {
+        m_editor.folders.clear();
+
+        std::ifstream in(std::filesystem::path(m_resources_path) / scene_path);
+        if (!in)
+        {
+            return;
+        }
+        const auto scene = nlohmann::json::parse(in, nullptr, false);
+        if (!scene.is_object() || !scene.contains("entities"))
+        {
+            return;
+        }
+
+        std::unordered_map<std::string, std::deque<std::string>> folders_by_name;
+        for (const auto& entity : scene["entities"])
+        {
+            folders_by_name[entity.value("name", "")].push_back(entity.value("folder", ""));
+        }
+
+        auto& world = this->get_world();
+        for (const auto& e : world.get_entities())
+        {
+            if (!world.has<noi_engine::name_component>(e))
+            {
+                continue;
+            }
+            auto& queue = folders_by_name[world.get<noi_engine::name_component>(e).name];
+            if (queue.empty())
+            {
+                continue;
+            }
+            if (!queue.front().empty())
+            {
+                m_editor.folders[editor_data::key(e)] = queue.front();
+            }
+            queue.pop_front();
+        }
     }
 
     auto bridge_game::enumerate_entities(const noi_engine_editor_bridge_entity_entry_callback callback,
@@ -48,9 +97,10 @@ namespace noi_engine_editor_bridge_detail
             }
 
             std::string component_types;
+            const auto context = component_context_for(e);
             for (const auto& handler : component_handlers())
             {
-                if (handler.has(world, e))
+                if (handler.has(context))
                 {
                     component_types += (component_types.empty() ? "" : ",") + std::string(handler.type);
                 }
@@ -94,6 +144,7 @@ namespace noi_engine_editor_bridge_detail
         }
 
         world.destroy_entity(e);
+        m_editor.folders.erase(editor_data::key(e));
         return true;
     }
 
@@ -116,11 +167,12 @@ namespace noi_engine_editor_bridge_detail
         // Copies every copyable component (all but name_component and world_matrix), then
         // gives the copy its new name.
         const auto copy = world.create_entity();
+        const auto source = component_context_for(e);
         for (const auto& handler : component_handlers())
         {
             if (handler.copy)
             {
-                handler.copy(world, e, copy);
+                handler.copy(source, copy);
             }
         }
 
