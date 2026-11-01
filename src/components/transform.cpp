@@ -2,7 +2,10 @@
 #include "persistence/json_utils.hpp"
 #include "properties/property_value.hpp"
 
+#include <noi_engine/builtin/components/box_collider.hpp>
+#include <noi_engine/builtin/components/gravity.hpp>
 #include <noi_engine/core/components/dirty.hpp>
+#include <noi_engine/core/components/mesh_renderer.hpp>
 #include <noi_engine/core/components/transform.hpp>
 
 namespace noi_engine_editor_bridge_detail
@@ -60,6 +63,17 @@ namespace noi_engine_editor_bridge_detail
             }
         }
 
+        // Drawing, physics and the camera all need the transform.
+        auto remove(const component_context& c) -> bool
+        {
+            if (c.entity == c.editor.camera_entity || c.world.has<noi_engine::mesh_renderer>(c.entity) ||
+                c.world.has<noi_engine::box_collider>(c.entity) || c.world.has<noi_engine::gravity>(c.entity))
+            {
+                return false;
+            }
+            return component_ops::remove<transform>(c);
+        }
+
         auto save(const component_context& c, const bool is_camera, nlohmann::json& components) -> void
         {
             const auto& t = c.world.get<transform>(c.entity);
@@ -81,7 +95,7 @@ namespace noi_engine_editor_bridge_detail
             .enumerate = enumerate,
             .set_property = set_property,
             .add = add,
-            .remove = component_ops::remove<transform>,
+            .remove = remove,
             .copy = copy,
             .save = save,
         };

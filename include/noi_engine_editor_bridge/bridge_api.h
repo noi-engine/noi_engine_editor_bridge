@@ -88,6 +88,11 @@ int noi_engine_editor_bridge_load_scripts(noi_engine_editor_bridge_game_handle h
 /* noi_engine version the bridge was built against (the lowest one it supports). */
 const char* noi_engine_editor_bridge_engine_version(void);
 
+/* Optional (bridge 0.0.3+): whether the game is in Play mode. Outside Play mode (the default)
+ * run() advances the game with a zero time step, so scripts and physics don't move anything
+ * while the scene is being edited; rendering and transforms stay live. */
+void noi_engine_editor_bridge_set_playing(noi_engine_editor_bridge_game_handle handle, int playing);
+
 /* NOI_ENGINE_EDITOR_BRIDGE_API_VERSION the bridge was built with. */
 int noi_engine_editor_bridge_api_version(void);
 

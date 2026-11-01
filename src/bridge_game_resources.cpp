@@ -1,5 +1,6 @@
 #include "bridge_game.hpp"
 #include "properties/property_emitter.hpp"
+#include "properties/resource_ref.hpp"
 
 #include <glm/glm.hpp>
 
@@ -86,8 +87,12 @@ namespace noi_engine_editor_bridge_detail
 
         if (property_name == "shader" && value.type == NOI_ENGINE_EDITOR_BRIDGE_PROPERTY_RESOURCE_REF)
         {
-            const std::string label = value.text ? value.text : "";
-            mat->set_shader(resources_ref.get_handle<noi_engine::shader>(label));
+            noi_engine::resource_handle<noi_engine::shader> shader{};
+            if (!find_resource(resources_ref, value.text ? value.text : "", shader))
+            {
+                return false;
+            }
+            mat->set_shader(shader);
             return true;
         }
         if (property_name.rfind("param:", 0) == 0 && value.type == NOI_ENGINE_EDITOR_BRIDGE_PROPERTY_FLOAT)
@@ -103,8 +108,12 @@ namespace noi_engine_editor_bridge_detail
         }
         if (property_name.rfind("texture:", 0) == 0 && value.type == NOI_ENGINE_EDITOR_BRIDGE_PROPERTY_RESOURCE_REF)
         {
-            const std::string label = value.text ? value.text : "";
-            mat->set_texture(property_name.substr(8), resources_ref.get_handle<noi_engine::texture>(label));
+            noi_engine::resource_handle<noi_engine::texture> texture{};
+            if (!find_resource(resources_ref, value.text ? value.text : "", texture))
+            {
+                return false;
+            }
+            mat->set_texture(property_name.substr(8), texture);
             return true;
         }
 

@@ -54,6 +54,15 @@ namespace noi_engine_editor_bridge_detail
         }
     }
 
+    namespace
+    {
+        // The scene camera is a 2D camera: a 3D camera component on it would replace its view.
+        auto add_unless_scene_camera(const component_context& c) -> bool
+        {
+            return c.entity != c.editor.camera_entity && component_ops::add<noi_engine::orbit_camera>(c);
+        }
+    }
+
     auto make_orbit_camera_handler() -> component_handler
     {
         return {
@@ -61,7 +70,7 @@ namespace noi_engine_editor_bridge_detail
             .has = component_ops::has<orbit_camera>,
             .enumerate = enumerate,
             .set_property = set_property,
-            .add = component_ops::add<orbit_camera>,
+            .add = add_unless_scene_camera,
             .remove = component_ops::remove<orbit_camera>,
             .copy = component_ops::copy<orbit_camera>,
         };

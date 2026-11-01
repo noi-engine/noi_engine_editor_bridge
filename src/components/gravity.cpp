@@ -1,6 +1,7 @@
 #include "component_handler.hpp"
 
 #include <noi_engine/builtin/components/gravity.hpp>
+#include <noi_engine/core/components/transform.hpp>
 
 namespace noi_engine_editor_bridge_detail
 {
@@ -38,6 +39,24 @@ namespace noi_engine_editor_bridge_detail
         }
     }
 
+    namespace
+    {
+        // Physics moves the transform: add one if the entity has none.
+        auto add_with_transform(const component_context& c) -> bool
+        {
+            if (c.world.has<gravity>(c.entity))
+            {
+                return false;
+            }
+            if (!c.world.has<noi_engine::transform>(c.entity))
+            {
+                c.world.add_transform(c.entity, {});
+            }
+            c.world.add<gravity>(c.entity, {});
+            return true;
+        }
+    }
+
     auto make_gravity_handler() -> component_handler
     {
         return {
@@ -45,7 +64,7 @@ namespace noi_engine_editor_bridge_detail
             .has = component_ops::has<gravity>,
             .enumerate = enumerate,
             .set_property = set_property,
-            .add = component_ops::add<gravity>,
+            .add = add_with_transform,
             .remove = component_ops::remove<gravity>,
             .copy = component_ops::copy<gravity>,
         };

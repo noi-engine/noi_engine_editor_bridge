@@ -1,5 +1,6 @@
 #include "component_handler.hpp"
 #include "properties/property_value.hpp"
+#include "properties/resource_ref.hpp"
 
 #include <nlohmann/json.hpp>
 #include <noi_engine/core/components/script_component.hpp>
@@ -41,8 +42,7 @@ namespace noi_engine_editor_bridge_detail
             {
                 return false;
             }
-            sc.scripts[index] = c.resources.get_handle<noi_engine::script>(text_of(value));
-            return true;
+            return find_resource(c.resources, text_of(value), sc.scripts[index]);
         }
 
         auto save(const component_context& c, bool, nlohmann::json& components) -> void

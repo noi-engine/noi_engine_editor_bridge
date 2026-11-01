@@ -2,6 +2,7 @@
 
 #include <nlohmann/json.hpp>
 #include <noi_engine/builtin/components/box_collider.hpp>
+#include <noi_engine/core/components/transform.hpp>
 
 namespace noi_engine_editor_bridge_detail
 {
@@ -48,6 +49,24 @@ namespace noi_engine_editor_bridge_detail
         }
     }
 
+    namespace
+    {
+        // Physics moves the transform: add one if the entity has none.
+        auto add_with_transform(const component_context& c) -> bool
+        {
+            if (c.world.has<box_collider>(c.entity))
+            {
+                return false;
+            }
+            if (!c.world.has<noi_engine::transform>(c.entity))
+            {
+                c.world.add_transform(c.entity, {});
+            }
+            c.world.add<box_collider>(c.entity, {});
+            return true;
+        }
+    }
+
     auto make_box_collider_handler() -> component_handler
     {
         return {
@@ -55,7 +74,7 @@ namespace noi_engine_editor_bridge_detail
             .has = component_ops::has<box_collider>,
             .enumerate = enumerate,
             .set_property = set_property,
-            .add = component_ops::add<box_collider>,
+            .add = add_with_transform,
             .remove = component_ops::remove<box_collider>,
             .copy = component_ops::copy<box_collider>,
             .save = save,

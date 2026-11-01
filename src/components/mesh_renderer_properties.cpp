@@ -1,6 +1,7 @@
 #include "mesh_renderer_properties.hpp"
 #include "persistence/json_utils.hpp"
 #include "properties/property_value.hpp"
+#include "properties/resource_ref.hpp"
 
 #include <noi_engine/core/components/mesh_renderer_properties.hpp>
 
@@ -49,7 +50,12 @@ namespace noi_engine_editor_bridge_detail
             }
             if (name.starts_with("texture:") && value.type == NOI_ENGINE_EDITOR_BRIDGE_PROPERTY_RESOURCE_REF)
             {
-                mrp.m_textures[name.substr(8)] = c.resources.get_handle<noi_engine::texture>(text_of(value));
+                noi_engine::resource_handle<noi_engine::texture> texture{};
+                if (!find_resource(c.resources, text_of(value), texture))
+                {
+                    return false;
+                }
+                mrp.m_textures[name.substr(8)] = texture;
                 return true;
             }
             return false;

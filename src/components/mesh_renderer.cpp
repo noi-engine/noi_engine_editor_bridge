@@ -1,5 +1,9 @@
 #include "mesh_renderer_properties.hpp"
 #include "properties/property_value.hpp"
+#include "properties/resource_ref.hpp"
+
+#include <noi_engine/core/components/mesh_renderer_properties.hpp>
+#include <noi_engine/core/components/transform.hpp>
 
 #include <noi_engine/core/components/mesh_renderer.hpp>
 #include <noi_engine/core/model/material.hpp>
@@ -30,15 +34,15 @@ namespace noi_engine_editor_bridge_detail
             auto& mr = c.world.get<mesh_renderer>(c.entity);
             const auto label = text_of(value);
 
+            // Only existing resources: an unknown or empty label would silently draw the first
+            // loaded mesh/material instead.
             if (name == "mesh")
             {
-                mr.m_mesh = c.resources.get_handle<noi_engine::mesh>(label);
-                return true;
+                return find_resource(c.resources, label, mr.m_mesh);
             }
             if (name == "material")
             {
-                mr.m_material = c.resources.get_handle<noi_engine::material>(label);
-                return true;
+                return find_resource(c.resources, label, mr.m_material);
             }
             return false;
         }
@@ -49,6 +53,11 @@ namespace noi_engine_editor_bridge_detail
             {
                 return false;
             }
+            // Nothing is drawn without a transform.
+            if (!c.world.has<noi_engine::transform>(c.entity))
+            {
+                c.world.add_transform(c.entity, {});
+            }
             // A default mesh_renderer{} has both handles at {id=0, generation=0}, which only
             // happens to be the builtin quad/color material because they are loaded first
             // (see game::init_builtin_resources()). Look them up by label instead.
@@ -56,6 +65,18 @@ namespace noi_engine_editor_bridge_detail
                                            .m_mesh = c.resources.get_handle<noi_engine::mesh>("meshes:quad_2d"),
                                            .m_material = c.resources.get_handle<noi_engine::material>("materials:color")
                                        });
+            return true;
+        }
+
+        // mesh_renderer_properties only makes sense with a mesh_renderer: remove them together.
+        auto remove(const component_context& c) -> bool
+        {
+            if (!c.world.has<mesh_renderer>(c.entity))
+            {
+                return false;
+            }
+            c.world.remove<mesh_renderer>(c.entity);
+            c.world.remove<noi_engine::mesh_renderer_properties>(c.entity);
             return true;
         }
 
@@ -90,7 +111,7 @@ namespace noi_engine_editor_bridge_detail
             .enumerate = enumerate,
             .set_property = set_property,
             .add = add,
-            .remove = component_ops::remove<mesh_renderer>,
+            .remove = remove,
             .copy = component_ops::copy<mesh_renderer>,
             .save = save,
         };

@@ -1,6 +1,6 @@
 {
   "name": "noi-engine-editor-bridge",
-  "version-string": "0.0.2",
+  "version-string": "0.0.3",
   "builtin-baseline": "fd3dde77905b1b1890df3c8daa496d9b2fe44f7f",
   "dependencies": [
     "glm",

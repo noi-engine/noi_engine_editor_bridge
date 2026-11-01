@@ -41,7 +41,8 @@ namespace noi_engine_editor_bridge_detail
     {
         const float dt = m_timer.tick();
 
-        this->update(dt);
+        // Edit mode: zero time step, so nothing moves on its own while the scene is edited.
+        this->update(m_playing ? dt : 0.0f);
 
         noi_engine::renderer::begin_frame();
         render();
@@ -51,6 +52,11 @@ namespace noi_engine_editor_bridge_detail
         // and before the next frame's key deltas are applied (see set_key_pressed/released) -
         // otherwise is_key_pressed()/is_key_released() could never reset.
         this->input().begin_frame();
+    }
+
+    auto bridge_game::set_playing(const bool playing) -> void
+    {
+        m_playing = playing;
     }
 
     auto bridge_game::reset_timer() -> void

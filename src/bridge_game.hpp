@@ -33,6 +33,7 @@ namespace noi_engine_editor_bridge_detail
         // Lifecycle & input
         auto run() -> void;
         auto reset_timer() -> void;
+        auto set_playing(bool playing) -> void;
         auto set_key_pressed(int key) -> void;
         auto set_key_released(int key) -> void;
         auto release_all_keys() -> void;
@@ -103,6 +104,7 @@ namespace noi_engine_editor_bridge_detail
         noi_engine::resource_handle<noi_engine::material> m_gizmo_material{};
         noi_engine::timer m_timer{};
         void* m_scripts_library_handle{nullptr};
+        bool m_playing{false};
         std::unordered_set<int> m_held_keys{};
 
         noi_engine::entity m_grid_entity{};

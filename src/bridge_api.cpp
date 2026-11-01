@@ -144,6 +144,11 @@ void noi_engine_editor_bridge_release_all_keys(const noi_engine_editor_bridge_ga
     reinterpret_cast<bridge_game*>(handle)->release_all_keys();
 }
 
+void noi_engine_editor_bridge_set_playing(const noi_engine_editor_bridge_game_handle handle, const int playing)
+{
+    reinterpret_cast<bridge_game*>(handle)->set_playing(playing != 0);
+}
+
 void noi_engine_editor_bridge_reset_timer(const noi_engine_editor_bridge_game_handle handle)
 {
     reinterpret_cast<bridge_game*>(handle)->reset_timer();

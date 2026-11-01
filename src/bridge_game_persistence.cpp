@@ -35,8 +35,11 @@ namespace noi_engine_editor_bridge_detail
                 return;
             }
 
-            nlohmann::json existing;
-            in >> existing;
+            const auto existing = nlohmann::json::parse(in, nullptr, false);
+            if (!existing.is_object())
+            {
+                return;
+            }
             if (existing.contains("name")) name = existing["name"];
             if (existing.contains("resources")) resources = existing["resources"];
         }

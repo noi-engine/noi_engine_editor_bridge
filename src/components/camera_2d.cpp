@@ -35,6 +35,11 @@ namespace noi_engine_editor_bridge_detail
 
         auto set_value(camera_2d& cam, const std::string& name, const float v) -> bool
         {
+            // These divide the view: zero or negative values would leave nothing visible.
+            if ((name == "zoom" || name == "aspect_ratio" || name == "orthographic_size") && !(v > 0.0f))
+            {
+                return false;
+            }
             if (name == "zoom") { cam.zoom = v; }
             else if (name == "near_plane") { cam.near_plane = v; }
             else if (name == "far_plane") { cam.far_plane = v; }
@@ -69,6 +74,12 @@ namespace noi_engine_editor_bridge_detail
             return true;
         }
 
+        // The scene camera can't lose its camera_2d: the editor and the game need it.
+        auto remove(const component_context& c) -> bool
+        {
+            return !is_scene_camera(c) && component_ops::remove<camera_2d>(c);
+        }
+
         auto save(const component_context& c, bool, nlohmann::json& components) -> void
         {
             const auto& cam = shown_camera(c);
@@ -93,7 +104,7 @@ namespace noi_engine_editor_bridge_detail
             .enumerate = enumerate,
             .set_property = set_property,
             .add = component_ops::add<camera_2d>,
-            .remove = component_ops::remove<camera_2d>,
+            .remove = remove,
             .copy = component_ops::copy<camera_2d>,
             .save = save,
         };
