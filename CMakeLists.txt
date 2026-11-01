@@ -21,6 +21,7 @@ if (NOT EXISTS "${NOI_ENGINE_ROOT}/include/noi_engine/noi_engineConfig.hpp")
 endif ()
 
 find_package(glm CONFIG REQUIRED)
+find_package(nlohmann_json CONFIG REQUIRED)
 
 configure_file(.templates/bridge_config.hpp.in
         ${CMAKE_CURRENT_BINARY_DIR}/generated/noi_engine_editor_bridge_config.hpp @ONLY)
@@ -62,13 +63,12 @@ add_library(noi_engine_editor_bridge SHARED
 target_include_directories(noi_engine_editor_bridge PRIVATE
         ${CMAKE_CURRENT_SOURCE_DIR}/include
         ${CMAKE_CURRENT_SOURCE_DIR}/src
-        ${CMAKE_CURRENT_SOURCE_DIR}/third_party
         ${CMAKE_CURRENT_BINARY_DIR}/generated
         ${NOI_ENGINE_ROOT}/include
 )
 
 target_link_directories(noi_engine_editor_bridge PRIVATE ${NOI_ENGINE_ROOT}/libs)
-target_link_libraries(noi_engine_editor_bridge PRIVATE noi_engine glm::glm)
+target_link_libraries(noi_engine_editor_bridge PRIVATE noi_engine glm::glm nlohmann_json::nlohmann_json)
 
 # The bridge never ships noi_engine: the editor loads the project's own libnoi_engine first,
 # so the bridge and the game's scripts share a single engine instance.

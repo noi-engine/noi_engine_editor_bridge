@@ -77,7 +77,6 @@ cmake --preset debug -DNOI_ENGINE_ROOT=/path/to/noi_engine   # a noi_engine rele
 cmake --build --preset debug
 ```
 
-## Third-party
+## Dependencies
 
-- [nlohmann/json](https://github.com/nlohmann/json) 3.12.0 (single header, MIT, see `third_party/nlohmann/LICENSE.MIT`)
-- [glm](https://github.com/g-truc/glm) via vcpkg
+[glm](https://github.com/g-truc/glm) and [nlohmann/json](https://github.com/nlohmann/json), both from vcpkg.
