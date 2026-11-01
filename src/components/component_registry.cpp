@@ -10,6 +10,7 @@ namespace noi_engine_editor_bridge_detail
     auto make_camera_2d_handler() -> component_handler;
     auto make_camera_3d_handler() -> component_handler;
     auto make_culling_handler() -> component_handler;
+    auto make_fill_screen_handler() -> component_handler;
     auto make_folder_handler() -> component_handler;
     auto make_gravity_handler() -> component_handler;
     auto make_groups_handler() -> component_handler;
@@ -30,6 +31,7 @@ namespace noi_engine_editor_bridge_detail
             make_camera_2d_handler(),
             make_camera_3d_handler(),
             make_culling_handler(),
+            make_fill_screen_handler(),
             make_folder_handler(),
             make_gravity_handler(),
             make_groups_handler(),

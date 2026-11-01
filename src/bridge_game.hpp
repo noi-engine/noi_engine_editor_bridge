@@ -100,12 +100,14 @@ namespace noi_engine_editor_bridge_detail
         auto refresh_camera_gizmo() -> void;
         auto apply_camera_mode() -> void;
         auto load_editor_fields(const std::string& scene_path) -> void;
+        auto load_registered_scripts() -> void;
 
         std::string m_resources_path;
         editor_data m_editor{};
         noi_engine::resource_handle<noi_engine::material> m_gizmo_material{};
         noi_engine::timer m_timer{};
         void* m_scripts_library_handle{nullptr};
+        unsigned m_scripts_load_count{0};
         bool m_playing{false};
         std::unordered_set<int> m_held_keys{};
 

@@ -20,6 +20,16 @@ noi_engine_editor ──(C API, bridge_api.h)──▶ libnoi_engine_editor_brid
 - Templates say which bridge they need (`editor_bridge_version` in `noi_engine.template.json`), and the editor downloads
   it from this repo's releases, next to the engine and the resources compiler.
 
+## Scripts
+
+- `load_scripts()` loads the project's scripts library from a temporary copy (so the build can overwrite the original),
+  and reloads it when called again after a compile: the registry is cleared first, so deleted scripts disappear. Scripts
+  register themselves when the library loads (`NOI_ENGINE_SCRIPT`); the `noi_engine_register_scripts` entry point is
+  optional. The editor then reloads the scene so entities use the new code.
+- Every registered script is loaded as a resource, so the editor can attach any of them (`scripts[<count>]` attaches,
+  removing `scripts[i]` detaches). Saving adds the scripts in use to the scene's `resources.scripts`.
+- Scripts only run in Play mode (`scene::set_scripts_paused`): while editing, the scene stays as authored.
+
 ## Versions: `bridge.json`
 
 ```json

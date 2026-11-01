@@ -5,6 +5,8 @@
 #include "bridge_game.hpp"
 #include "editor_shaders.hpp"
 
+#include <cstdio>
+#include <exception>
 #include <memory>
 
 #include <glm/glm.hpp>
@@ -28,8 +30,23 @@ namespace noi_engine_editor_bridge_detail
 
     auto bridge_game::set_scene_2d(const std::string& path) -> void
     {
-        this->set_scene(path);
+        // A broken scene file must not take the editor down with it.
+        try
+        {
+            this->set_scene(path);
+        }
+        catch (const std::exception& e)
+        {
+            std::fprintf(stderr, "[noi_engine_editor_bridge] Couldn't load the scene %s: %s\n", path.c_str(), e.what());
+            return;
+        }
+        if (!this->get_current_scene())
+        {
+            return;
+        }
         this->get_current_scene()->add_system<noi_engine::physics_system>();
+        this->get_current_scene()->set_scripts_paused(!m_playing);
+        load_registered_scripts();
 
         // Remember the camera as authored, before on_resize() / the editor view change it.
         m_editor.camera_entity = this->get_current_scene()->get_camera_entity();

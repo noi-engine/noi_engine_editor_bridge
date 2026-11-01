@@ -62,7 +62,10 @@ namespace noi_engine_editor_bridge_detail
             {
                 c.world.add_transform(c.entity, {});
             }
-            c.world.add<box_collider>(c.entity, {});
+            // Sized to the sprite: the entity's quad is its scale (follows later scale edits,
+            // see transform.cpp).
+            const auto& scale = c.world.get<noi_engine::transform>(c.entity).scale;
+            c.world.add<box_collider>(c.entity, box_collider{.half_extents = {scale.x * 0.5f, scale.y * 0.5f}});
             return true;
         }
     }

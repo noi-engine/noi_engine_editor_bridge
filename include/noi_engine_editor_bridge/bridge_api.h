@@ -82,7 +82,9 @@ void noi_engine_editor_bridge_on_resize(noi_engine_editor_bridge_game_handle han
 
 void noi_engine_editor_bridge_set_scene_2d(noi_engine_editor_bridge_game_handle handle, const char* scene_path_utf8);
 
-/* Returns non-zero on success. */
+/* Loads the project's scripts library. Call it again after the project is recompiled: it
+ * reloads the rebuilt library (bridge 0.0.7+; older bridges ignore later calls), then reload
+ * the scene (set_scene_2d) so entities use the new scripts. Returns non-zero on success. */
 int noi_engine_editor_bridge_load_scripts(noi_engine_editor_bridge_game_handle handle, const char* scripts_library_path_utf8);
 
 /* noi_engine version the bridge was built against (the lowest one it supports). */

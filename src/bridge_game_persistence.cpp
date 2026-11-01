@@ -6,11 +6,14 @@
 #include "bridge_game.hpp"
 #include "components/component_registry.hpp"
 
+#include <algorithm>
 #include <array>
 #include <fstream>
 
 #include <nlohmann/json.hpp>
 #include <noi_engine/core/components/name_component.hpp>
+#include <noi_engine/core/components/script_component.hpp>
+#include <noi_engine/core/model/script.hpp>
 
 namespace noi_engine_editor_bridge_detail
 {
@@ -20,7 +23,7 @@ namespace noi_engine_editor_bridge_detail
         // (gravity, for instance, has no scene format: scripts add it at runtime).
         constexpr std::array SAVE_ORDER{
             "transform", "camera_2d", "culling", "render_layer", "mesh_renderer", "script_component", "box_collider",
-            "always_active",
+            "always_active", "fill_screen",
         };
 
         // The engine doesn't keep a resource's load path once loaded (only its label), so the
@@ -113,6 +116,29 @@ namespace noi_engine_editor_bridge_detail
         }
 
         root["entities"] = entities;
+
+        // The scene loads the scripts its "resources" block lists: add the ones attached in the
+        // editor since.
+        auto& scripts = root["resources"]["scripts"];
+        if (!scripts.is_array())
+        {
+            scripts = nlohmann::json::array();
+        }
+        for (const auto e : world.view<noi_engine::script_component>())
+        {
+            if (is_editor_entity(e))
+            {
+                continue;
+            }
+            for (const auto& handle : world.get<noi_engine::script_component>(e).scripts)
+            {
+                const std::string label{this->resources().get_label<noi_engine::script>(handle)};
+                if (!label.empty() && std::find(scripts.begin(), scripts.end(), label) == scripts.end())
+                {
+                    scripts.push_back(label);
+                }
+            }
+        }
 
         std::ofstream out(target_path);
         if (!out)

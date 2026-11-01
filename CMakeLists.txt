@@ -51,6 +51,7 @@ add_library(noi_engine_editor_bridge SHARED
         src/components/camera_2d.cpp
         src/components/camera_3d.cpp
         src/components/culling.cpp
+        src/components/fill_screen.cpp
         src/components/folder.cpp
         src/components/gravity.cpp
         src/components/groups.cpp

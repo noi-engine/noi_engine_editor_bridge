@@ -2,6 +2,8 @@
 #include "persistence/json_utils.hpp"
 #include "properties/property_value.hpp"
 
+#include <cmath>
+
 #include <noi_engine/builtin/components/box_collider.hpp>
 #include <noi_engine/builtin/components/gravity.hpp>
 #include <noi_engine/core/components/dirty.hpp>
@@ -47,7 +49,21 @@ namespace noi_engine_editor_bridge_detail
 
             if (name == "position") { t.position = v; }
             else if (name == "rotation") { t.rotation = v; }
-            else if (name == "scale") { t.scale = v; }
+            else if (name == "scale")
+            {
+                // A box collider still sized to the sprite (half the scale) keeps following it;
+                // one sized by hand is left alone.
+                if (c.world.has<noi_engine::box_collider>(c.entity))
+                {
+                    auto& half = c.world.get<noi_engine::box_collider>(c.entity).half_extents;
+                    constexpr float EPSILON = 1e-4f;
+                    if (std::abs(half.x - t.scale.x * 0.5f) < EPSILON && std::abs(half.y - t.scale.y * 0.5f) < EPSILON)
+                    {
+                        half = glm::vec2{v.x * 0.5f, v.y * 0.5f};
+                    }
+                }
+                t.scale = v;
+            }
             else { return false; }
 
             if (!is_scene_camera(c))

@@ -4,10 +4,14 @@
 #include <cstdio>
 #include <filesystem>
 #include <memory>
+#include <string>
+#include <system_error>
 
 #include <dlfcn.h>
+#include <unistd.h>
 
 #include <noi_engine/core/components/camera_2d.hpp>
+#include <noi_engine/core/model/script.hpp>
 #include <noi_engine/core/renderer/renderer.hpp>
 #include <noi_engine/core/resources/resource_loader.hpp>
 
@@ -61,6 +65,11 @@ namespace noi_engine_editor_bridge_detail
     auto bridge_game::set_playing(const bool playing) -> void
     {
         m_playing = playing;
+        // Scripts only run in Play mode: while editing, the scene stays as authored.
+        if (auto* current = this->get_current_scene())
+        {
+            current->set_scripts_paused(!playing);
+        }
         apply_camera_mode();
     }
 
@@ -104,14 +113,19 @@ namespace noi_engine_editor_bridge_detail
         this->m_scene_manager->on_resize(width, height);
     }
 
+    // Loads the project's scripts library, or reloads it after the project was recompiled. The
+    // library is copied to a unique temporary file first: dlopen() of a path already loaded
+    // returns the old library, and the build may overwrite the file while it is mapped.
+    // Scripts register themselves when the library loads (NOI_ENGINE_SCRIPT); the optional
+    // noi_engine_register_scripts entry point adds the custom ones. A previously loaded library
+    // is never unloaded: instances of its scripts may still be alive (the editor reloads the
+    // scene right after, which replaces them).
     auto bridge_game::load_scripts(const std::string& scripts_library_path) -> bool
     {
-        if (m_scripts_library_handle)
-        {
-            return true;
-        }
+        namespace fs = std::filesystem;
 
-        if (!std::filesystem::exists(scripts_library_path))
+        std::error_code error;
+        if (!fs::exists(scripts_library_path, error))
         {
             std::fprintf(stderr,
                          "[noi_engine_editor_bridge] Game scripts library not found (build the project first): %s\n",
@@ -119,27 +133,41 @@ namespace noi_engine_editor_bridge_detail
             return false;
         }
 
-        m_scripts_library_handle = dlopen(scripts_library_path.c_str(), RTLD_NOW | RTLD_LOCAL);
-        if (!m_scripts_library_handle)
+        const auto copy_path = fs::temp_directory_path(error) /
+            ("noi_engine_editor_scripts_" + std::to_string(::getpid()) + "_" + std::to_string(++m_scripts_load_count) +
+             fs::path(scripts_library_path).extension().string());
+        if (error || !fs::copy_file(scripts_library_path, copy_path, fs::copy_options::overwrite_existing, error))
+        {
+            std::fprintf(stderr, "[noi_engine_editor_bridge] Couldn't copy the scripts library %s: %s\n",
+                         scripts_library_path.c_str(), error.message().c_str());
+            return false;
+        }
+
+        // Only the new library's scripts must stay registered (a deleted script disappears),
+        // but keep the old ones if it fails to load.
+        auto& registry = noi_engine::details::script_registry::instance();
+        const auto previous_factories = registry.factories();
+        registry.clear();
+
+        void* handle = dlopen(copy_path.c_str(), RTLD_NOW | RTLD_LOCAL);
+        fs::remove(copy_path, error); // the mapping stays valid
+        if (!handle)
         {
             std::fprintf(stderr, "[noi_engine_editor_bridge] Failed to load game scripts library %s: %s\n",
                          scripts_library_path.c_str(), dlerror());
+            for (const auto& [name, factory] : previous_factories)
+            {
+                registry.add(name, factory);
+            }
             return false;
         }
 
-        const auto register_scripts = reinterpret_cast<register_scripts_fn>(
-            dlsym(m_scripts_library_handle, REGISTER_SCRIPTS_SYMBOL));
-
-        if (!register_scripts)
+        if (const auto register_scripts = reinterpret_cast<register_scripts_fn>(dlsym(handle, REGISTER_SCRIPTS_SYMBOL)))
         {
-            std::fprintf(stderr, "[noi_engine_editor_bridge] Game scripts library %s has no %s entry point\n",
-                         scripts_library_path.c_str(), REGISTER_SCRIPTS_SYMBOL);
-            dlclose(m_scripts_library_handle);
-            m_scripts_library_handle = nullptr;
-            return false;
+            register_scripts(*this);
         }
 
-        register_scripts(*this);
+        m_scripts_library_handle = handle;
         return true;
     }
 

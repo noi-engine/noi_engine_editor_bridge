@@ -2,10 +2,34 @@
 #include "properties/property_emitter.hpp"
 #include "properties/resource_ref.hpp"
 
+#include <cstdio>
+#include <exception>
+
 #include <glm/glm.hpp>
+#include <noi_engine/core/model/script.hpp>
 
 namespace noi_engine_editor_bridge_detail
 {
+    // Every script of the scripts library, not only the ones the scene uses, so the editor can
+    // offer them all when attaching a script to an entity.
+    auto bridge_game::load_registered_scripts() -> void
+    {
+        auto& resources_ref = this->resources();
+        for (const auto& [name, factory] : noi_engine::details::script_registry::instance().factories())
+        {
+            noi_engine::resource_handle<noi_engine::script> handle{};
+            try
+            {
+                (void)resources_ref.find_or_load_script(name, handle);
+            }
+            catch (const std::exception& e)
+            {
+                std::fprintf(stderr, "[noi_engine_editor_bridge] Couldn't create the script %s: %s\n", name.c_str(),
+                             e.what());
+            }
+        }
+    }
+
     auto bridge_game::enumerate_resources(const noi_engine_editor_bridge_resource_entry_callback callback,
                                            void* const user_data) const -> void
     {
