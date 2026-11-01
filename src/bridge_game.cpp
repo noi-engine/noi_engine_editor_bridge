@@ -43,6 +43,10 @@ namespace noi_engine_editor_bridge_detail
 
         // Edit mode: zero time step, so nothing moves on its own while the scene is edited.
         this->update(m_playing ? dt : 0.0f);
+        if (m_playing)
+        {
+            refresh_camera_gizmo(); // follows the camera the game moves
+        }
 
         noi_engine::renderer::begin_frame();
         render();

@@ -46,6 +46,10 @@ namespace noi_engine_editor_bridge_detail
         m_editor.view_x = x;
         m_editor.view_y = y;
         m_editor.view_zoom = zoom > 0.0f ? zoom : 1.0f;
+        if (m_playing)
+        {
+            return; // in Play mode the game (its scripts) drives the camera
+        }
         apply_camera_mode();
         refresh_camera_gizmo(); // its border keeps the same on-screen width at any zoom
     }
@@ -122,7 +126,9 @@ namespace noi_engine_editor_bridge_detail
 
         auto& world = this->get_world();
         auto& transform = world.get<noi_engine::transform>(m_gizmo_entity);
-        transform.position = m_editor.authored_camera_transform.position;
+        // In Play mode the border follows the live camera (moved by the game's scripts).
+        transform.position = m_playing ? world.get<noi_engine::transform>(m_editor.camera_entity).position
+                                       : m_editor.authored_camera_transform.position;
         transform.scale = glm::vec3{world_width, world_height, 1.0f};
         world.add<noi_engine::dirty<noi_engine::transform>>(m_gizmo_entity, noi_engine::dirty<noi_engine::transform>{});
     }
