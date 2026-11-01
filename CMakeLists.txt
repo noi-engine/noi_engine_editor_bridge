@@ -46,11 +46,14 @@ add_library(noi_engine_editor_bridge SHARED
         src/components/component_handler.hpp
         src/components/component_registry.hpp
         src/components/component_registry.cpp
+        src/components/always_active.cpp
         src/components/box_collider.cpp
         src/components/camera_2d.cpp
         src/components/camera_3d.cpp
+        src/components/culling.cpp
         src/components/folder.cpp
         src/components/gravity.cpp
+        src/components/groups.cpp
         src/components/mesh_renderer.cpp
         src/components/mesh_renderer_properties.hpp
         src/components/mesh_renderer_properties.cpp

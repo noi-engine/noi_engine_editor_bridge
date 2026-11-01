@@ -57,6 +57,7 @@ namespace noi_engine_editor_bridge_detail
     auto bridge_game::set_playing(const bool playing) -> void
     {
         m_playing = playing;
+        apply_camera_mode();
     }
 
     auto bridge_game::reset_timer() -> void

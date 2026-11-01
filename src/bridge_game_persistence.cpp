@@ -19,7 +19,8 @@ namespace noi_engine_editor_bridge_detail
         // Order components are written in. Types without a `save` function aren't persisted
         // (gravity, for instance, has no scene format: scripts add it at runtime).
         constexpr std::array SAVE_ORDER{
-            "transform", "camera_2d", "render_layer", "mesh_renderer", "script_component", "box_collider",
+            "transform", "camera_2d", "culling", "render_layer", "mesh_renderer", "script_component", "box_collider",
+            "always_active",
         };
 
         // The engine doesn't keep a resource's load path once loaded (only its label), so the
@@ -63,8 +64,8 @@ namespace noi_engine_editor_bridge_detail
 
         for (const auto& e : world.get_entities())
         {
-            // The reference grid is editor-only (see set_scene_2d()) - never write it back.
-            if (is_grid_entity(e))
+            // The camera border is editor-only (see set_scene_2d()) - never write it back.
+            if (is_editor_entity(e))
             {
                 continue;
             }
@@ -94,6 +95,19 @@ namespace noi_engine_editor_bridge_detail
                 !it->second.empty())
             {
                 entity_json["folder"] = it->second;
+            }
+            if (const auto it = m_editor.groups.find(editor_data::key(e)); it != m_editor.groups.end() &&
+                !it->second.empty())
+            {
+                auto groups = nlohmann::json::array();
+                std::string::size_type start = 0;
+                while (start <= it->second.size())
+                {
+                    const auto end = std::min(it->second.find(',', start), it->second.size());
+                    if (end > start) groups.push_back(it->second.substr(start, end - start));
+                    start = end + 1;
+                }
+                entity_json["groups"] = groups;
             }
             entities.push_back(entity_json);
         }

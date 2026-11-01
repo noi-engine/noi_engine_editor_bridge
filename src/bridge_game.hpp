@@ -19,7 +19,7 @@ namespace noi_engine_editor_bridge_detail
     // Concrete noi_engine::game behind every noi_engine_editor_bridge_game_handle. bridge_api.cpp
     // exposes it through the extern "C" API in bridge_api.h. Implementation files:
     //   - bridge_game.cpp:             lifecycle, input, resize, scripts library
-    //   - bridge_game_overlay.cpp:     scene loading + editor-only camera border and grid
+    //   - bridge_game_overlay.cpp:     scene loading, editor view, editor-only camera border
     //   - bridge_game_entities.cpp:    entity listing, create/destroy/duplicate
     //   - bridge_game_components.cpp:  component editing (one handler per type in components/)
     //   - bridge_game_resources.cpp:   resource listing and material editing
@@ -42,7 +42,8 @@ namespace noi_engine_editor_bridge_detail
 
         // Scene & editor overlay
         auto set_scene_2d(const std::string& path) -> void;
-        auto set_grid_visible(bool visible) -> void;
+        auto set_grid_visible(bool visible) -> void; // no-op, the grid was removed
+        auto set_editor_view(float x, float y, float zoom) -> void;
         [[nodiscard]] auto save_scene(const std::string& target_path) -> bool;
 
         // Entities
@@ -92,12 +93,13 @@ namespace noi_engine_editor_bridge_detail
 
         [[nodiscard]] auto component_context_for(noi_engine::entity e) -> component_context;
         [[nodiscard]] auto component_context_for(uint32_t entity_id, uint32_t entity_generation) -> component_context;
-        [[nodiscard]] auto is_grid_entity(noi_engine::entity e) const -> bool;
+        // Entities the editor adds for display (the camera border): never listed, saved or deletable.
+        [[nodiscard]] auto is_editor_entity(noi_engine::entity e) const -> bool;
 
         auto add_camera_gizmo() -> void;
         auto refresh_camera_gizmo() -> void;
-        auto create_grid() -> void;
-        auto load_folders(const std::string& scene_path) -> void;
+        auto apply_camera_mode() -> void;
+        auto load_editor_fields(const std::string& scene_path) -> void;
 
         std::string m_resources_path;
         editor_data m_editor{};
@@ -107,10 +109,7 @@ namespace noi_engine_editor_bridge_detail
         bool m_playing{false};
         std::unordered_set<int> m_held_keys{};
 
-        noi_engine::entity m_grid_entity{};
-        bool m_has_grid_entity{false};
-        noi_engine::resource_handle<noi_engine::mesh> m_grid_mesh{};
-        noi_engine::resource_handle<noi_engine::material> m_grid_material{};
-        bool m_grid_visible{false};
+        noi_engine::entity m_gizmo_entity{};
+        bool m_has_gizmo_entity{false};
     };
 }

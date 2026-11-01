@@ -23,16 +23,18 @@ namespace noi_engine_editor_bridge_detail
         }
     }
 
-    auto bridge_game::is_grid_entity(const noi_engine::entity e) const -> bool
+    auto bridge_game::is_editor_entity(const noi_engine::entity e) const -> bool
     {
-        return m_has_grid_entity && e == m_grid_entity;
+        return m_has_gizmo_entity && e == m_gizmo_entity;
     }
 
-    // The engine ignores the entities' "folder" field, so read it straight from the scene file.
+    // The engine ignores the entities' editor-only "folder" and "groups" fields, so read them
+    // straight from the scene file.
     // Entities are matched by name, in file order (the order the loader created them in).
-    auto bridge_game::load_folders(const std::string& scene_path) -> void
+    auto bridge_game::load_editor_fields(const std::string& scene_path) -> void
     {
         m_editor.folders.clear();
+        m_editor.groups.clear();
 
         std::ifstream in(std::filesystem::path(m_resources_path) / scene_path);
         if (!in)
@@ -45,10 +47,16 @@ namespace noi_engine_editor_bridge_detail
             return;
         }
 
-        std::unordered_map<std::string, std::deque<std::string>> folders_by_name;
+        // Per name, in file order: {folder, groups}.
+        std::unordered_map<std::string, std::deque<std::pair<std::string, std::string>>> fields_by_name;
         for (const auto& entity : scene["entities"])
         {
-            folders_by_name[entity.value("name", "")].push_back(entity.value("folder", ""));
+            std::string groups;
+            for (const auto& group : entity.value("groups", nlohmann::json::array()))
+            {
+                if (group.is_string()) groups += (groups.empty() ? "" : ",") + group.get<std::string>();
+            }
+            fields_by_name[entity.value("name", "")].emplace_back(entity.value("folder", ""), groups);
         }
 
         auto& world = this->get_world();
@@ -58,14 +66,19 @@ namespace noi_engine_editor_bridge_detail
             {
                 continue;
             }
-            auto& queue = folders_by_name[world.get<noi_engine::name_component>(e).name];
+            auto& queue = fields_by_name[world.get<noi_engine::name_component>(e).name];
             if (queue.empty())
             {
                 continue;
             }
-            if (!queue.front().empty())
+            const auto& [folder, groups] = queue.front();
+            if (!folder.empty())
             {
-                m_editor.folders[editor_data::key(e)] = queue.front();
+                m_editor.folders[editor_data::key(e)] = folder;
+            }
+            if (!groups.empty())
+            {
+                m_editor.groups[editor_data::key(e)] = groups;
             }
             queue.pop_front();
         }
@@ -83,9 +96,8 @@ namespace noi_engine_editor_bridge_detail
 
         for (const auto& e : world.get_entities())
         {
-            // The editor's reference grid (see set_scene_2d()) is a rendering aid, not scene
-            // content - keep it out of the Hierarchy.
-            if (is_grid_entity(e))
+            // The camera border (see set_scene_2d()) is a rendering aid, not scene content.
+            if (is_editor_entity(e))
             {
                 continue;
             }
@@ -133,8 +145,8 @@ namespace noi_engine_editor_bridge_detail
         auto& world = this->get_world();
         const noi_engine::entity e{entity_id, entity_generation};
 
-        // The scene's camera and the editor's grid are structural, not authored content.
-        if (e == this->get_current_scene()->get_camera_entity() || is_grid_entity(e))
+        // The scene's camera and the editor's camera border are structural, not authored content.
+        if (e == this->get_current_scene()->get_camera_entity() || is_editor_entity(e))
         {
             return false;
         }
@@ -145,6 +157,7 @@ namespace noi_engine_editor_bridge_detail
 
         world.destroy_entity(e);
         m_editor.folders.erase(editor_data::key(e));
+        m_editor.groups.erase(editor_data::key(e));
         return true;
     }
 

@@ -5,11 +5,14 @@
 namespace noi_engine_editor_bridge_detail
 {
     // One per file in components/.
+    auto make_always_active_handler() -> component_handler;
     auto make_box_collider_handler() -> component_handler;
     auto make_camera_2d_handler() -> component_handler;
     auto make_camera_3d_handler() -> component_handler;
+    auto make_culling_handler() -> component_handler;
     auto make_folder_handler() -> component_handler;
     auto make_gravity_handler() -> component_handler;
+    auto make_groups_handler() -> component_handler;
     auto make_mesh_renderer_handler() -> component_handler;
     auto make_mesh_renderer_properties_handler() -> component_handler;
     auto make_name_component_handler() -> component_handler;
@@ -22,11 +25,14 @@ namespace noi_engine_editor_bridge_detail
     auto component_handlers() -> std::span<const component_handler>
     {
         static const std::array handlers{
+            make_always_active_handler(),
             make_box_collider_handler(),
             make_camera_2d_handler(),
             make_camera_3d_handler(),
+            make_culling_handler(),
             make_folder_handler(),
             make_gravity_handler(),
+            make_groups_handler(),
             make_mesh_renderer_handler(),
             make_mesh_renderer_properties_handler(),
             make_name_component_handler(),

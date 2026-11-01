@@ -55,8 +55,8 @@ namespace noi_engine_editor_bridge_detail
             return false;
         }
 
-        // The red border shows the scene camera's authored size.
-        if (component_type == "camera_2d" && context.entity == m_editor.camera_entity)
+        // The red border shows the scene camera's authored position and size.
+        if ((component_type == "camera_2d" || component_type == "transform") && context.entity == m_editor.camera_entity)
         {
             refresh_camera_gizmo();
         }

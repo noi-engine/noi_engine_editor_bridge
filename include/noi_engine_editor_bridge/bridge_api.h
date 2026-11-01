@@ -93,6 +93,11 @@ const char* noi_engine_editor_bridge_engine_version(void);
  * while the scene is being edited; rendering and transforms stay live. */
 void noi_engine_editor_bridge_set_playing(noi_engine_editor_bridge_game_handle handle, int playing);
 
+/* Optional (bridge 0.0.4+): where the editor looks, in world units, and its zoom. Outside Play
+ * mode the viewport shows this view instead of the scene camera, which stays where the scene
+ * puts it (its red border marks what it films in the game). */
+void noi_engine_editor_bridge_set_editor_view(noi_engine_editor_bridge_game_handle handle, float x, float y, float zoom);
+
 /* NOI_ENGINE_EDITOR_BRIDGE_API_VERSION the bridge was built with. */
 int noi_engine_editor_bridge_api_version(void);
 
@@ -183,11 +188,7 @@ void noi_engine_editor_bridge_release_all_keys(noi_engine_editor_bridge_game_han
  */
 void noi_engine_editor_bridge_reset_timer(noi_engine_editor_bridge_game_handle handle);
 
-/*
- * Shows/hides the editor-only reference grid added by set_scene_2d() (fixed in world space,
- * not attached to the camera, purely a visual aid for confirming camera movement in the
- * preview). No-op if no scene is loaded yet.
- */
+/* Deprecated (bridge 0.0.4+): the reference grid was removed, this does nothing. */
 void noi_engine_editor_bridge_set_grid_visible(noi_engine_editor_bridge_game_handle handle, int visible);
 
 /*

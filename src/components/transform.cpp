@@ -14,9 +14,21 @@ namespace noi_engine_editor_bridge_detail
     {
         using noi_engine::transform;
 
+        // The scene camera's transform as authored: outside Play mode the live one follows the
+        // editor's view (see editor_data).
+        [[nodiscard]] auto is_scene_camera(const component_context& c) -> bool
+        {
+            return c.entity == c.editor.camera_entity;
+        }
+
+        [[nodiscard]] auto edited_transform(const component_context& c) -> transform&
+        {
+            return is_scene_camera(c) ? c.editor.authored_camera_transform : c.world.get<transform>(c.entity);
+        }
+
         auto enumerate(const component_context& c, const property_emitter& emitter) -> void
         {
-            const auto& t = c.world.get<transform>(c.entity);
+            const auto& t = edited_transform(c);
             emitter.emit_vec3("position", t.position, false);
             emitter.emit_vec3("rotation", t.rotation, false);
             emitter.emit_vec3("scale", t.scale, false);
@@ -30,7 +42,7 @@ namespace noi_engine_editor_bridge_detail
                 return false;
             }
 
-            auto& t = c.world.get<transform>(c.entity);
+            auto& t = edited_transform(c);
             const auto v = vec3_of(value);
 
             if (name == "position") { t.position = v; }
@@ -38,7 +50,10 @@ namespace noi_engine_editor_bridge_detail
             else if (name == "scale") { t.scale = v; }
             else { return false; }
 
-            c.world.add<noi_engine::dirty<transform>>(c.entity, noi_engine::dirty<transform>{});
+            if (!is_scene_camera(c))
+            {
+                c.world.add<noi_engine::dirty<transform>>(c.entity, noi_engine::dirty<transform>{});
+            }
             return true;
         }
 
@@ -76,12 +91,10 @@ namespace noi_engine_editor_bridge_detail
 
         auto save(const component_context& c, const bool is_camera, nlohmann::json& components) -> void
         {
-            const auto& t = c.world.get<transform>(c.entity);
+            const auto& t = edited_transform(c);
             nlohmann::json props;
             props["position"] = vec3_json(t.position);
             props["rotation"] = vec3_json(t.rotation);
-            // set_scene_2d() overwrites the camera entity's scale to size the border gizmo -
-            // never persist that, always write identity scale back for the camera.
             props["scale"] = is_camera ? vec3_json(glm::vec3{1.0f}) : vec3_json(t.scale);
             components.push_back({{"type", "transform"}, {"properties", props}});
         }

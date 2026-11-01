@@ -144,6 +144,12 @@ void noi_engine_editor_bridge_release_all_keys(const noi_engine_editor_bridge_ga
     reinterpret_cast<bridge_game*>(handle)->release_all_keys();
 }
 
+void noi_engine_editor_bridge_set_editor_view(const noi_engine_editor_bridge_game_handle handle, const float x,
+                                              const float y, const float zoom)
+{
+    reinterpret_cast<bridge_game*>(handle)->set_editor_view(x, y, zoom);
+}
+
 void noi_engine_editor_bridge_set_playing(const noi_engine_editor_bridge_game_handle handle, const int playing)
 {
     reinterpret_cast<bridge_game*>(handle)->set_playing(playing != 0);
