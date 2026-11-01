@@ -49,6 +49,17 @@ namespace noi_engine_editor_bridge_detail
             return true;
         }
 
+        // add_transform() (not add<transform>) so the copy also gets its world_matrix: without
+        // it, transform_system crashes as soon as the copy's transform is marked dirty, and the
+        // renderer never draws it.
+        auto copy(const component_context& from, const noi_engine::entity to) -> void
+        {
+            if (from.world.has<transform>(from.entity))
+            {
+                from.world.add_transform(to, from.world.get<transform>(from.entity));
+            }
+        }
+
         auto save(const component_context& c, const bool is_camera, nlohmann::json& components) -> void
         {
             const auto& t = c.world.get<transform>(c.entity);
@@ -71,7 +82,7 @@ namespace noi_engine_editor_bridge_detail
             .set_property = set_property,
             .add = add,
             .remove = component_ops::remove<transform>,
-            .copy = component_ops::copy<transform>,
+            .copy = copy,
             .save = save,
         };
     }

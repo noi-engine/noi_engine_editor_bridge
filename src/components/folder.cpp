@@ -43,7 +43,8 @@ namespace noi_engine_editor_bridge_detail
         {
             if (const auto it = from.editor.folders.find(editor_data::key(from.entity)); it != from.editor.folders.end())
             {
-                from.editor.folders[editor_data::key(to)] = it->second;
+                auto path = it->second; // copy first: inserting below may rehash and invalidate `it`
+                from.editor.folders[editor_data::key(to)] = std::move(path);
             }
         }
     }
