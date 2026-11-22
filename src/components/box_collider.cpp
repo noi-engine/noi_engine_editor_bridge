@@ -1,5 +1,8 @@
 #include "component_handler.hpp"
 
+#include <cstdint>
+#include <cstdlib>
+#include <string>
 #include <nlohmann/json.hpp>
 #include <noi_engine/builtin/components/box_collider.hpp>
 #include <noi_engine/core/components/transform.hpp>
@@ -15,7 +18,30 @@ namespace noi_engine_editor_bridge_detail
             const auto& bc = c.world.get<box_collider>(c.entity);
             emitter.emit_float("half_width", bc.half_extents.x, false);
             emitter.emit_float("half_height", bc.half_extents.y, false);
+            emitter.emit_float("offset_x", bc.offset.x, false);
+            emitter.emit_float("offset_y", bc.offset.y, false);
             emitter.emit_bool("is_static", bc.is_static, false);
+            emitter.emit_bool("is_trigger", bc.is_trigger, false);
+            // Bit masks, as text: a float can't hold all 32 bits.
+            emitter.emit_string("layer", std::to_string(bc.layer), false);
+            emitter.emit_string("mask", std::to_string(bc.mask), false);
+        }
+
+        // Parses an unsigned decimal; false (and `out` untouched) for anything else.
+        auto parse_mask(const char* text, std::uint32_t& out) -> bool
+        {
+            if (text == nullptr || *text == '\0')
+            {
+                return false;
+            }
+            char* end = nullptr;
+            const auto parsed = std::strtoull(text, &end, 10);
+            if (*end != '\0' || parsed > 0xFFFFFFFFull)
+            {
+                return false;
+            }
+            out = static_cast<std::uint32_t>(parsed);
+            return true;
         }
 
         auto set_property(const component_context& c, const std::string& name,
@@ -28,6 +54,15 @@ namespace noi_engine_editor_bridge_detail
                 bc.is_static = value.flag != 0;
                 return true;
             }
+            if (name == "is_trigger" && value.type == NOI_ENGINE_EDITOR_BRIDGE_PROPERTY_BOOL)
+            {
+                bc.is_trigger = value.flag != 0;
+                return true;
+            }
+            if ((name == "layer" || name == "mask") && value.type == NOI_ENGINE_EDITOR_BRIDGE_PROPERTY_STRING)
+            {
+                return parse_mask(value.text, name == "layer" ? bc.layer : bc.mask);
+            }
             if (value.type != NOI_ENGINE_EDITOR_BRIDGE_PROPERTY_FLOAT)
             {
                 return false;
@@ -35,6 +70,8 @@ namespace noi_engine_editor_bridge_detail
 
             if (name == "half_width") { bc.half_extents.x = value.number[0]; }
             else if (name == "half_height") { bc.half_extents.y = value.number[0]; }
+            else if (name == "offset_x") { bc.offset.x = value.number[0]; }
+            else if (name == "offset_y") { bc.offset.y = value.number[0]; }
             else { return false; }
             return true;
         }
@@ -44,7 +81,11 @@ namespace noi_engine_editor_bridge_detail
             const auto& bc = c.world.get<box_collider>(c.entity);
             nlohmann::json props;
             props["half_extents"] = nlohmann::json::array({bc.half_extents.x, bc.half_extents.y});
+            props["offset"] = nlohmann::json::array({bc.offset.x, bc.offset.y});
             props["is_static"] = bc.is_static;
+            props["is_trigger"] = bc.is_trigger;
+            props["layer"] = bc.layer;
+            props["mask"] = bc.mask;
             components.push_back({{"type", "box_collider"}, {"properties", props}});
         }
     }
