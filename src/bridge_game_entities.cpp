@@ -183,7 +183,8 @@ namespace noi_engine_editor_bridge_detail
         const auto source = component_context_for(e);
         for (const auto& handler : component_handlers())
         {
-            if (handler.copy)
+            // Only what the source actually has (a copy handler may read the component unchecked).
+            if (handler.copy && handler.has && handler.has(source))
             {
                 handler.copy(source, copy);
             }
