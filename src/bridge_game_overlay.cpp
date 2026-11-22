@@ -151,7 +151,8 @@ namespace noi_engine_editor_bridge_detail
         // In Play mode the border follows the live camera (moved by the game's scripts).
         transform.position = m_playing ? world.get<noi_engine::transform>(m_editor.camera_entity).position
                                        : m_editor.authored_camera_transform.position;
-        transform.scale = glm::vec3{world_width, world_height, 1.0f};
+        // The border is an editing aid: while the game runs, the screen already is the camera's view.
+        transform.scale = m_playing ? glm::vec3{0.0f, 0.0f, 1.0f} : glm::vec3{world_width, world_height, 1.0f};
         world.add<noi_engine::dirty<noi_engine::transform>>(m_gizmo_entity, noi_engine::dirty<noi_engine::transform>{});
     }
 
