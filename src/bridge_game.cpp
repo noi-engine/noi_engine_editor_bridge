@@ -111,6 +111,12 @@ namespace noi_engine_editor_bridge_detail
         cam.aspect_ratio = static_cast<float>(width) / static_cast<float>(height);
 
         this->m_scene_manager->on_resize(width, height);
+
+        // Resizing the viewport while the game runs must not change what the game shows.
+        if (m_playing)
+        {
+            apply_camera_mode();
+        }
     }
 
     // Loads the project's scripts library, or reloads it after the project was recompiled. The

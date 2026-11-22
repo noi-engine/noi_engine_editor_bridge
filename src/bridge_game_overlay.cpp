@@ -88,6 +88,11 @@ namespace noi_engine_editor_bridge_detail
         {
             transform.position = m_editor.authored_camera_transform.position;
             camera.zoom = m_editor.authored_camera.zoom;
+            // The game sees exactly what the scene's camera is set to see (the red frame in the
+            // editor), not whatever fits the editor's viewport: the host letterboxes the output to
+            // this aspect ratio. Without this, Play showed only the middle of the camera's view.
+            camera.orthographic_size = m_editor.authored_camera.orthographic_size;
+            camera.aspect_ratio = m_editor.authored_camera.aspect_ratio;
         }
         else
         {
